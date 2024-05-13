@@ -44,6 +44,8 @@ export default class GranularChartVisualization extends React.Component {
             intervalId: null,
             selectedItem: null,
         };
+        this.run = () => this.runQueries();
+        this.set = (context) => this.setTimeInterval(context);
     }
 
     /**
@@ -51,7 +53,7 @@ export default class GranularChartVisualization extends React.Component {
      */
     componentDidMount() {
         this.firstTime = true;
-        PlatformStateContext.subscribe((context) => this.setTimeInterval(context));
+        PlatformStateContext.subscribe(this.set);
     }
 
     /**
@@ -66,14 +68,23 @@ export default class GranularChartVisualization extends React.Component {
         // Calculate duration
         let duration;
         if (context.timeRange) {
-            this.timeRange = context.timeRange;
             if (context.timeRange.duration) {
+                if (this.timeRange && context.timeRange.duration === this.timeRange.duration) {
+                    // nothing changed, exit
+                    return;
+                }
                 duration = context.timeRange.duration;
             } else if (context.timeRange.begin_time && context.timeRange.end_time) {
+                if (this.timeRange && context.timeRange.begin_time === this.timeRange.begin_time &&
+                    context.timeRange.end_time === this.timeRange.end_time) {
+                    // nothing changed, exit
+                    return;
+                }
                 duration = context.timeRange.end_time - context.timeRange.begin_time;
             } else {
                 duration = 3600000;
             }
+            this.timeRange = context.timeRange;
         } else {
             this.timeRange = {};
             duration = 3600000;
@@ -85,11 +96,11 @@ export default class GranularChartVisualization extends React.Component {
         }
         // Update refresh as needed
         if (!this.intervalId) {
-            this.intervalId = setInterval(() => this.runQueries(), interval);
+            this.intervalId = setInterval(this.run, interval);
             this.interval = interval;
         } else if (this.interval !== interval) {
             clearInterval(this.state.intervalId);
-            this.intervalId = setInterval(() => this.runQueries(), interval);
+            this.intervalId = setInterval(this.run, interval);
             this.interval = interval;
         }
         // Run queries
@@ -109,7 +120,6 @@ export default class GranularChartVisualization extends React.Component {
             console.log('NRQL query not configured');
             return
         }
-
         // Calculate time range
         let duration, begin_time, end_time;
         const now = Date.now();
@@ -137,28 +147,45 @@ export default class GranularChartVisualization extends React.Component {
         let current = begin_time;
         for (let i = 1; i < count; i++) {
             query = nrqlQuery + ' SINCE ' + current.toString() + ' UNTIL ' + (current + step).toString();
+            //console.log('query:', query);
             promiseArr.push(NrqlQuery.query({query, accountIds}));
             current += step;
         }
         query = nrqlQuery + ' SINCE ' + current.toString() + ' UNTIL ' + end_time.toString();
+        //console.log('query:', query);
         promiseArr.push(NrqlQuery.query({query, accountIds}));
         // Execute queries
         Promise.all(promiseArr).then((results)=>{
             // Start with the first query result
             let data = results[0].data;
+            let last = data.length;
+            let lookup = {};
             // Update metadata timestamp with ultimate begin_time
             for (let j = 0; j<data.length; j++) {
                 data[j].metadata.timeRange.end_time = end_time;
+                lookup[data[j].metadata.name] = j;
             }
             // Append additional queries
             for (let i=1; i< results.length; i++) {
-                const result = results[i];
+                const result = results[i].data;
                 // Append each facet
-                for (let j = 0; j<result.data.length; j++) {
-                    data[j].data.push(...result.data[j].data)
+                for (let j = 0; j<result.length; j++) {
+                    const name = result[j].metadata.name;
+                    const idx = lookup[name];
+                    if (idx) {
+                        // facet matches first query, use lookup index
+                        data[idx].data.push(...result[j].data)
+                    } else {
+                        // new facet, store index in lookup and append to data
+                        lookup[name] = last;
+                        last++;
+                        result[j].metadata.timeRange.end_time = end_time;
+                        data.push(result[j]);
+                    }
                 }
             }
             // Refresh the chart
+            //console.log('data:', data)
             this.setState({data});
         });
     }
