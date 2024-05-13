@@ -1,0 +1,32 @@
+{
+    "schemaType": "VISUALIZATION",
+    "id": "granular-chart",
+    "displayName": "GranularChart",
+    "description": "",
+    "configuration": [
+        {
+            "name": "accountId",
+            "title": "Account ID",
+            "description": "Account ID to be associated with the query.",
+            "type": "account-id"
+        },
+        {
+            "name": "nrqlQuery",
+            "title": "Query",
+            "description": "NRQL query for visualization.",
+            "type": "nrql"
+        },
+        {
+            "name": "areaChart",
+            "title": "Line or Area Chart",
+            "description": "Default is Line Chart. Enable for Area Chart.",
+            "type": "boolean"
+        },
+        {
+            "name": "threeQueries",
+            "title": "Two or Three Queries",
+            "description": "Default is 2 Queries (732 buckets). Enable for Three Queries (1098 buckets).",
+            "type": "boolean"
+        }
+    ]
+}
