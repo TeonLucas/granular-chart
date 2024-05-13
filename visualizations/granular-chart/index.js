@@ -130,7 +130,7 @@ export default class GranularChartVisualization extends React.Component {
 
         // Generate queries in promise array
         const count = threeQueries ? 3 : 2;
-        const step = duration / count;
+        const step = Math.round(duration / count);
         const accountIds = [accountId];
         let promiseArr = [];
         let query;
