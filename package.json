@@ -1,13 +1,13 @@
 {
     "private": true,
     "name": "granular-chart-app",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "scripts": {
         "start": "nr1 nerdpack:serve",
         "test": "exit 0"
     },
     "nr1": {
-        "uuid": "85030e1d-c8e9-4e70-aba3-6d1245bcbdff"
+        "uuid": "00000000-0000-0000-0000-000000000000"
     },
     "dependencies": {
         "prop-types": "15.7.2",
